@@ -4,12 +4,14 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/csv"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/spf13/viper"
 
 	"github.com/sirupsen/logrus"
 )
@@ -32,7 +34,6 @@ func GetLatestDLURL(url string) (DownloadURL, error) {
 
 	for n := range dls {
 		dl := dls[n]
-		logrus.Info(n)
 
 		if d != nil {
 			logrus.Debug(dl.Day, " v ", d.Day, "       ", dl.Time, " v ", d.Time)
@@ -40,7 +41,7 @@ func GetLatestDLURL(url string) (DownloadURL, error) {
 
 		if d == nil || (dl.Day >= d.Day && dl.Time >= d.Time) {
 			d = &dl
-			logrus.Info("set latest to ", d.Name)
+			logrus.Debug("set latest to ", d.Name)
 		}
 	}
 	return *d, err
@@ -58,7 +59,11 @@ func GetDLURLs(url string) ([]DownloadURL, error) {
 		s.Find("td").Each(func(i int, s *goquery.Selection) {
 			u, e := s.Find("a").Attr("href")
 			if e {
-				dl.URL = u
+				if len(u) > 1 || string(u[0]) == "/" {
+					dl.URL = fmt.Sprintf("%s%s", viper.GetString("download.dl_root"), string(u))
+				} else {
+					dl.URL = string(u)
+				}
 			}
 
 			if s.HasClass("labelOptional_ind") {
