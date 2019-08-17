@@ -6,13 +6,85 @@ import (
 	"encoding/csv"
 	"io/ioutil"
 	"net/http"
+	"strconv"
+	"strings"
+
+	"github.com/PuerkitoBio/goquery"
 
 	"github.com/sirupsen/logrus"
 )
 
-// GetLatestDLURL returns the most recent download URL from Ercot archive page
-func GetLatestDLURL(url string) (string, error) {
+type DownloadURL struct {
+	URL  string
+	Name string
+	Type string
+	Day  int
+	Time int
+}
 
+// GetLatestDLURL returns the most recent download URL index at url
+func GetLatestDLURL(url string) (DownloadURL, error) {
+	var d *DownloadURL
+	dls, err := GetDLURLs(url)
+	if err != nil {
+		return *d, err
+	}
+
+	for n := range dls {
+		dl := dls[n]
+		logrus.Info(n)
+
+		if d != nil {
+			logrus.Debug(dl.Day, " v ", d.Day, "       ", dl.Time, " v ", d.Time)
+		}
+
+		if d == nil || (dl.Day >= d.Day && dl.Time >= d.Time) {
+			d = &dl
+			logrus.Info("set latest to ", d.Name)
+		}
+	}
+	return *d, err
+}
+
+// GetDLURLs all download URLs from the index at url
+func GetDLURLs(url string) ([]DownloadURL, error) {
+	var dls []DownloadURL
+	g, err := goquery.NewDocument(url)
+	if err != nil {
+		return nil, err
+	}
+	g.Find("tr").Each(func(i int, s *goquery.Selection) {
+		dl := DownloadURL{}
+		s.Find("td").Each(func(i int, s *goquery.Selection) {
+			u, e := s.Find("a").Attr("href")
+			if e {
+				dl.URL = u
+			}
+
+			if s.HasClass("labelOptional_ind") {
+				dl.Name = s.Text()
+			}
+		})
+		parts := strings.Split(dl.Name, ".")
+		if len(parts) > 2 {
+			fnParts := strings.Split(parts[len(parts)-2], "_")
+			if fnParts[len(fnParts)-1] == "csv" {
+				dl.Type = "csv"
+				d, err := strconv.Atoi(fnParts[len(fnParts)-3])
+				if err != nil {
+					return
+				}
+				t, err := strconv.Atoi(fnParts[len(fnParts)-2])
+				if err != nil {
+					return
+				}
+				dl.Day = d
+				dl.Time = t
+				dls = append(dls, dl)
+			}
+		}
+	})
+	return dls, nil
 }
 
 // GetDataFromZippedCSV returns a slice of string mapped strings from a zipped CSV
