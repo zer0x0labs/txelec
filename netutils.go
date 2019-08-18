@@ -16,6 +16,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// DownloadURL holds a URL to a zipped CSV file and metadata to allow sorting
 type DownloadURL struct {
 	URL  string
 	Name string
