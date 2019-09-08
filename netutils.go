@@ -131,7 +131,7 @@ func GetDataFromZippedCSV(url string) ([]map[string]string, error) {
 		for _, row := range recs[1:] {
 			rm := make(map[string]string)
 			for k, v := range row {
-				rm[headers[k]] = v
+				rm[headers[k]] = strings.Trim(v, " \t\n")
 			}
 			recmap = append(recmap, rm)
 		}
