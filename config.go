@@ -8,6 +8,7 @@ import (
 func LoadConfiguration() error {
 	viper.SetConfigName("txelec")
 	viper.AddConfigPath(".")
+	viper.SetDefault("region.default", "LZ_NORTH")
 	return viper.ReadInConfig()
 }
 
@@ -24,4 +25,9 @@ func PriceAddersIndexURL() string {
 // SettlementIndexURL returns the Settlement Report Index
 func SettlementIndexURL() string {
 	return viper.GetString("sources.settlement_index")
+}
+
+// DefaultRegion returns the default region for which to show prices
+func DefaultRegion() string {
+	return viper.GetString("region.default")
 }
