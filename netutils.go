@@ -115,7 +115,7 @@ func GetDataFromZippedCSV(url string) ([]map[string]string, error) {
 	var recmap []map[string]string
 
 	for _, f := range r.File {
-		logrus.Info(f.Name)
+		logrus.Debug(f.Name)
 		fh, err := f.Open()
 		if err != nil {
 			return nil, err
