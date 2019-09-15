@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/sirupsen/logrus"
 	"github.com/zer0x0labs/txelec"
 )
@@ -11,6 +13,9 @@ func main() {
 		logrus.Fatal(err)
 	}
 
-	prices := txelec.LatestPrices()
-	logrus.Info(prices)
+	prices, err := txelec.LatestPrices()
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	fmt.Printf("%+v", prices)
 }

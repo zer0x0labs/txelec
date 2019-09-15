@@ -6,7 +6,7 @@ import (
 )
 
 // LatestPrices returns the latest prices with adders
-func LatestPrices() []Price {
+func LatestPrices() ([]Price, error) {
 	url, err := GetLatestDLURL(viper.GetString("sources.lmp_index"))
 	if err != nil {
 		logrus.Fatal(err)

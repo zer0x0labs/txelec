@@ -1,15 +1,17 @@
 package txelec
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Price is a price per MWh
 type Price struct {
 	PriceMWh     float64
 	RepeatedHour bool
-	Timestamp    string
+	Timestamp    time.Time
 	Region       string
 	Adder        Adder
 }
@@ -20,11 +22,11 @@ type Adder struct {
 	RTORPA       float64
 	All          float64
 	RepeatedHour bool
-	Timestamp    string
+	Timestamp    time.Time
 }
 
 // Prices converts the raw k,v data to a list of prices
-func Prices(prices []map[string]string) []Price {
+func Prices(prices []map[string]string) ([]Price, error) {
 	p := make([]Price, 0)
 	for _, line := range prices {
 		export := false
@@ -39,13 +41,13 @@ func Prices(prices []map[string]string) []Price {
 				export = true
 				t.PriceMWh = f
 			case "repeatedhourflag":
-				if strings.ToLower(v) == "n" {
-					t.RepeatedHour = false
-				} else if strings.ToLower(v) == "y" {
-					t.RepeatedHour = true
-				}
+				t.RepeatedHour = parseRepeatedHourFlag(v)
 			case "scedtimestamp":
-				t.Timestamp = v
+				ts, err := parseTimestamp(v)
+				if err != nil {
+					return p, err
+				}
+				t.Timestamp = ts
 			case "settlementpoint":
 				t.Region = v
 			}
@@ -54,11 +56,11 @@ func Prices(prices []map[string]string) []Price {
 			p = append(p, t)
 		}
 	}
-	return p
+	return p, nil
 }
 
 // Adders converts raw k,v data to a list of adders
-func Adders(adders []map[string]string) []Adder {
+func Adders(adders []map[string]string) ([]Adder, error) {
 	ad := make([]Adder, 0)
 	for _, line := range adders {
 		export := false
@@ -82,32 +84,62 @@ func Adders(adders []map[string]string) []Adder {
 				a.RTORDPA = f
 				a.All += f
 			case "repeatedhourflag":
-				if strings.ToLower(v) == "n" {
-					a.RepeatedHour = false
-				} else if strings.ToLower(v) == "y" {
-					a.RepeatedHour = true
-				}
+				a.RepeatedHour = parseRepeatedHourFlag(v)
 			case "scedtimestamp":
-				a.Timestamp = v
+				ts, err := parseTimestamp(v)
+				if err != nil {
+					return ad, err
+				}
+				a.Timestamp = ts
 			}
 		}
 		if export {
 			ad = append(ad, a)
 		}
 	}
-	return ad
+	return ad, nil
+}
+
+func parseRepeatedHourFlag(v string) bool {
+	if strings.ToLower(v) == "n" {
+		return false
+	}
+	return true
+}
+
+func parseTimestamp(v string) (time.Time, error) {
+	var ts time.Time
+	loc, err := time.LoadLocation("America/Chicago")
+	if err != nil {
+		return ts, err
+	}
+
+	ts, err = time.ParseInLocation("01/02/2006 15:04:05", v, loc)
+	if err != nil {
+		return ts, err
+	}
+
+	return ts, err
 }
 
 // PricesWithAdders converts a list of k,v prices and adders into prices with matching adders
-func PricesWithAdders(prices, adders []map[string]string) []Price {
-	a := Adders(adders)
-	p := Prices(prices)
+func PricesWithAdders(prices, adders []map[string]string) ([]Price, error) {
+	a, err := Adders(adders)
+	if err != nil {
+		return nil, err
+	}
+	p, err := Prices(prices)
+	if err != nil {
+		return nil, err
+	}
 	for i, v := range p {
 		for _, av := range a {
-			if av.Timestamp == v.Timestamp {
+			if av.Timestamp.Hour() == v.Timestamp.Hour() && av.Timestamp.Minute() == v.Timestamp.Minute() {
 				p[i].Adder = av
+			} else {
+				return nil, fmt.Errorf("price timestamp %+v and adder timestamp %+v do not match", v.Timestamp, av.Timestamp)
 			}
 		}
 	}
-	return p
+	return p, nil
 }
