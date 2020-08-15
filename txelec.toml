@@ -5,3 +5,6 @@ settlement_index = "http://mis.ercot.com/misapp/GetReports.do?reportTypeId=12301
 
 [download]
 dl_root = "http://mis.ercot.com"
+
+[storage]
+enabled = true

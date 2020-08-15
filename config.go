@@ -9,6 +9,8 @@ func LoadConfiguration() error {
 	viper.SetConfigName("txelec")
 	viper.AddConfigPath(".")
 	viper.SetDefault("region.default", "LZ_NORTH")
+	viper.SetDefault("storage.enabled", false)
+
 	return viper.ReadInConfig()
 }
 
@@ -30,4 +32,9 @@ func SettlementIndexURL() string {
 // DefaultRegion returns the default region for which to show prices
 func DefaultRegion() string {
 	return viper.GetString("region.default")
+}
+
+// DefaultRegion returns the default region for which to show prices
+func StorageEnabled() bool {
+	return viper.GetBool("storage.enabled")
 }

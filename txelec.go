@@ -1,31 +1,30 @@
 package txelec
 
 import (
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
 // LatestPrices returns the latest prices with adders
-func LatestPrices() []Price {
+func LatestPrices() ([]Price, error) {
 	url, err := GetLatestDLURL(viper.GetString("sources.lmp_index"))
 	if err != nil {
-		logrus.Fatal(err)
+		return nil, err
 	}
 
 	prices, err := GetDataFromZippedCSV(url.URL)
 	if err != nil {
-		logrus.Fatal(err)
+		return nil, err
 	}
 
 	url, err = GetLatestDLURL(viper.GetString("sources.adders_index"))
 	if err != nil {
-		logrus.Fatal(err)
+		return nil, err
 	}
 
 	adders, err := GetDataFromZippedCSV(url.URL)
 	if err != nil {
-		logrus.Fatal(err)
+		return nil, err
 	}
 
-	return PricesWithAdders(prices, adders)
+	return PricesWithAdders(prices, adders), nil
 }
